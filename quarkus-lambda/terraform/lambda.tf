@@ -1,25 +1,59 @@
+#
+#
 
 resource "aws_s3_bucket" "lambda_bucket" {
     bucket = var.lambda_bucket
 }
 
-resource "aws_iam_role" "iam_for_lambda" {
-    name               = "iam_for_lambda"
-    assume_role_policy = data.aws_iam_policy_document.assume_role.json
+resource "aws_s3_bucket_versioning" "lambda_bucket_versioning" {
+    bucket = aws_s3_bucket.lambda_bucket.id
+    versioning_configuration {
+        status = "Enabled"
+    }
+}
+
+resource "aws_s3_object" "lambda" {
+    bucket = var.lambda_bucket
+    key    = "lambda"
+    source = "../target/function.zip"
+    etag   = filemd5("../target/function.zip")
+
+    depends_on = [
+        aws_s3_bucket.lambda_bucket
+    ]
+}
+
+resource "aws_iam_role" "lambda_execution_role" {
+    name                = "lambda_execution_role"
+    assume_role_policy  = data.aws_iam_policy_document.assume_role.json
     managed_policy_arns = [
         "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
     ]
 }
 
+data "aws_iam_policy_document" "assume_role" {
+    statement {
+        effect = "Allow"
+
+        principals {
+            type        = "Service"
+            identifiers = ["lambda.amazonaws.com"]
+        }
+
+        actions = ["sts:AssumeRole"]
+    }
+}
+
+
 resource "aws_lambda_function" "quarkus_lambda" {
-    function_name    = var.lambda_function_name
-    filename         = var.lambda_bucket
-    source_code_hash = filebase64sha256("../target/function.zip")
-    handler          = "not.used.in.provided.runtime"
-    runtime          = "provided.al2023"
-    role             = aws_iam_role.iam_for_lambda.arn
-    memory_size      = 128
-    timeout          = 15
+    function_name = var.lambda_function_name
+    s3_bucket     = var.lambda_bucket
+    s3_key        = "lambda"
+    handler       = "not.used.in.provided.runtime"
+    runtime       = "provided.al2023"
+    role          = aws_iam_role.lambda_execution_role.arn
+    memory_size   = 128
+    timeout       = 15
 
     logging_config {
         log_format = "Text"
@@ -27,15 +61,21 @@ resource "aws_lambda_function" "quarkus_lambda" {
     tracing_config {
         mode = "Active"
     }
+
+    depends_on = [
+        aws_s3_object.lambda,
+        aws_iam_role_policy_attachment.lambda_logs_role,
+        aws_cloudwatch_log_group.example,
+    ]
 }
 
 resource "aws_cloudwatch_log_group" "example" {
-    name              = "/aws/lambda/${var.lambda_function_name}"
+    name              = "/aws/lambda/${var.lambda_function_name}-tf"
     retention_in_days = 1
 }
 
 # See also the following AWS managed policy: AWSLambdaBasicExecutionRole
-data "aws_iam_policy_document" "lambda_logging" {
+data "aws_iam_policy_document" "lambda_logging_policy" {
     statement {
         effect = "Allow"
 
@@ -49,19 +89,14 @@ data "aws_iam_policy_document" "lambda_logging" {
     }
 }
 
-resource "aws_iam_policy" "lambda_logging" {
+resource "aws_iam_policy" "lambda_logging_policy" {
     name        = "lambda_logging"
     path        = "/"
     description = "IAM policy for logging from a lambda"
-    policy      = data.aws_iam_policy_document.lambda_logging.json
+    policy      = data.aws_iam_policy_document.lambda_logging_policy.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_logs" {
-    role       = aws_iam_role.iam_for_lambda.name
-    policy_arn = aws_iam_policy.lambda_logging.arn
-}
-
-resource "aws_lambda_function_url" "test_latest" {
-    function_name      = aws_lambda_function.quarkus_lambda.function_name
-    authorization_type = "NONE"
+resource "aws_iam_role_policy_attachment" "lambda_logs_role" {
+    role       = aws_iam_role.lambda_execution_role.name
+    policy_arn = aws_iam_policy.lambda_logging_policy.arn
 }
