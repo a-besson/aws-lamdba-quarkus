@@ -12,7 +12,7 @@
 
     <modules>
         <module>quarkus-lambda</module>
-<!--        <module>quarkus-lambda-api-gateway-rest</module>-->
+        <module>quarkus-lambda-api-gateway-rest</module>
     </modules>
 
     <properties>
