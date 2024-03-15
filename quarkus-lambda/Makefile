@@ -14,11 +14,12 @@ clean:
 	aws cloudformation delete-stack --stack-name ${LAMDBA_STACK} && \
 	aws cloudformation wait stack-delete-complete --stack-name ${LAMDBA_STACK}; \
 	aws s3 rm s3://${LAMDBA_BUCKET} --recursive; \
-	aws s3 rb s3://${LAMDBA_BUCKET};
+	aws s3 rb s3://${LAMDBA_BUCKET}; \
+	mvn clean
 
 test:
 	mvn clean test
-z
+
 package:
 	@echo "Build lambda with graaljvm"
 	mvn clean install -DskipTests -Dnative -Dquarkus.native.container-build=true
