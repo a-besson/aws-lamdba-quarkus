@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: "AWS::Serverless-2016-10-31"
-Description: Architecture Serverless avec Lambda, API Gateway, VPC, ACL, Security Group, WAF, et CloudWatch
+Description: Architecture Serverless avec Lambda, API Gateway et CloudWatch
 
 Parameters:
     ApiGatewayName:
@@ -24,7 +24,6 @@ Parameters:
         Description: Délai d'expiration de la fonction Lambda en secondes
 
 Resources:
-
     LambdaIAMRole:
         Type: AWS::IAM::Role
         Properties:
@@ -102,9 +101,7 @@ Resources:
             Action: lambda:InvokeFunction
             FunctionName: !Ref QuarkusLambdaSimpleDemo
             Principal: apigateway.amazonaws.com
-            # note: if route *not* at API Gateway root, `SourceArn` would take the form of:
-            #               arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${apiGateway}/${ApiGatewayStageName}/${apiGatewayHTTPMethod}/PATH_PART
-            SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BasicAWSApiGateway}/dev/POST/demo
+            SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${BasicAWSApiGateway}/*/*/*
 
     BasicAWSApiGateway:
         Type: AWS::Serverless::Api
@@ -139,7 +136,6 @@ Outputs:
     LambdaFunctionARN:
         Description: ARN de la fonction Lambda créée
         Value: !GetAtt QuarkusLambdaSimpleDemo.Arn
-
     BasicAWSApiGateway:
         Description: 'API Gateway endpoint URL for Staging stage for Hello World function'
         Value: !Sub 'https://${BasicAWSApiGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/demo/'

@@ -16,7 +16,7 @@ test:
 	mvn test
 
 package:
-	@echo "Build lambda with graaljvm"
+	@echo "Build lambda with graalvm"
 	mvn install -DskipTests -Dnative -Dquarkus.native.container-build=true
 
 package-jvm:

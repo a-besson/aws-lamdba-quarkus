@@ -45,8 +45,6 @@ resource "aws_lambda_function" "quarkus_lambda" {
 
     depends_on = [
         aws_s3_object.deploy_lambda_to_s3,
-        aws_iam_role_policy_attachment.lambda_logs_role,
-        aws_cloudwatch_log_group.lambda_log_group,
     ]
 }
 
@@ -69,43 +67,6 @@ data "aws_iam_policy_document" "lambda_policy_assume_role" {
 resource "aws_iam_role" "lambda_execution_role" {
     name                = "lambda_execution_role"
     assume_role_policy  = data.aws_iam_policy_document.lambda_policy_assume_role.json
-}
-
-#
-# Lambda log group
-#
-resource "aws_cloudwatch_log_group" "lambda_log_group" {
-    name              = "/aws/lambda/${var.lambda_function_name}-tf"
-    retention_in_days = 1
-}
-
-#
-# Lambda log policy
-#
-data "aws_iam_policy_document" "lambda_logging_policy" {
-    statement {
-        effect = "Allow"
-
-        actions = [
-            "logs:CreateLogGroup",
-            "logs:CreateLogStream",
-            "logs:PutLogEvents",
-        ]
-
-        resources = ["arn:aws:logs:*:*:*"]
-    }
-}
-
-resource "aws_iam_policy" "lambda_logging_policy" {
-    name        = "lambda_logging"
-    path        = "/"
-    description = "IAM policy for logging from a lambda"
-    policy      = data.aws_iam_policy_document.lambda_logging_policy.json
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_logs_role" {
-    role       = aws_iam_role.lambda_execution_role.name
-    policy_arn = aws_iam_policy.lambda_logging_policy.arn
 }
 
 #
