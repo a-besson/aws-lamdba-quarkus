@@ -36,7 +36,7 @@
         <quarkus-plugin.version>3.36.0</quarkus-plugin.version>
         <quarkus.platform.version>3.9.0</quarkus.platform.version>
 
-        <slf4j-jboss-logmanager.version>2.0.1.Final</slf4j-jboss-logmanager.version>
+        <slf4j-jboss-logmanager.version>2.1.0.Final</slf4j-jboss-logmanager.version>
         <lombok.version>1.18.46</lombok.version>
     </properties>
 
